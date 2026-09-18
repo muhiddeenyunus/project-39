@@ -1,71 +1,427 @@
-# Report — Solo Execution, Mock-First Frontend, and Path to Live
+# E-Commerce Order System
 
-## 0. Handoff — We did our part, you can continue
-> **Status update for the team / reviewers:** Our frontend slice is **done and fully usable**. The Shopix storefront at `app/page.tsx` is live with mock data — users can browse (100+ image-backed products planned), search, filter, add to cart, checkout, and track orders, all without a DB. **We have completed our own part.** The remaining backend slices (`feature/auth`, `feature/products-api`, `feature/cart`, `feature/orders-api`, plus Paystack real payments) are fully spec'd in `docs/ARCHITECTURE.md` / `docs/API.md` / `docs/PAYMENT.md` with stub code in `lib/paystack.ts` and `app/api/payments/*` so **whoever picks it up next can go on with theirs without waiting on us**. No installs were run; everything below is a drop-in plan.
+## Frontend Implementation Report
 
-## 1. What was expected vs. what happened
-- **Expected:** Team capstone — 6–7 members collaborate on branches `feature/auth`, `feature/products-api`, `feature/cart`, `feature/orders-api`, `feature/frontend-store`, `feature/admin-dashboard`, `docs + tests`. Each person owns one slice, reviews one PR.
-- **Actual:** Built **solo**. So the report reframes the work as if the team existed: branches are simulated via atomic commits, PR reviews are self-reviews, and backend tasks are documented rather than coded — while the **frontend is fully shipped** so the app can be graded and demoed without waiting for the DB. **Paystack was added as the real payment provider** (see §8) — mock checkout already mirrors its flow.
+### 1. Introduction
 
-This is the honest account requested for the repo: *how we were supposed to collaborate, what we did alone, and how the solo work still satisfies every team task.*
+This report presents the current implementation of the E-Commerce Order System capstone project.
 
-## 2. Frontend-only, mock-first — why
-Instruction was: **do not install anything, only do our frontend, never `pnpm add` or migrate**. So the entire backend (Prisma + Postgres + JWT + Zod) is kept as **spec + docs** and a **mock layer** stands in:
+The work completed at this stage focuses on the **frontend implementation, application structure, user interface, user flows, and mock data** required to demonstrate the intended e-commerce experience.
 
-| Spec requirement | Mock stand-in (shipped) | Real replacement (later) |
-|---|---|---|
-| `prisma/schema.prisma` | `lib/mock/products.ts` + `lib/mock/categories.ts` (100+ Unsplash images, same fields as `Product`/`Category`) | `prisma/schema.prisma` + `prisma/seed.ts` |
-| `POST /api/auth/*` | `localStorage` fake session `{name,email,role}` | JWT in httpOnly cookie + `lib/auth.ts` + `middleware.ts` |
-| `GET /api/products` | `searchProducts()` / pagination in-memory | Prisma `findMany` with `skip/take` |
-| `POST /api/cart/items` | `addToCart()` in `lib/mock/store.ts` | `Cart` + `CartItem` with stock check |
-| `POST /api/orders` transaction | `checkout()` in `lib/mock/store.ts` (creates mock order, clears cart) | `prisma.$transaction(...)` (Order + OrderItems + Payment + stock decrement) |
-| Admin `middleware.ts` | mock role gate in UI | real `middleware.ts` checking `role === ADMIN` |
+The frontend has been structured around the major stages of an online shopping process, including product discovery, product browsing, search and filtering, cart management, checkout, and order tracking.
 
-Users can **browse, search, filter, add to cart, change qty, checkout (Paystack mock in dev, real Paystack in prod), view order history and status** — all against mock data. No DB is needed to demo or grade. Real payments are Paystack — see `docs/PAYMENT.md` and `lib/paystack.ts`.
+Mock data is currently used in place of the production database and backend services. This allows the frontend to be developed, tested, and demonstrated independently while providing a structured foundation for the subsequent integration of the backend components.
 
-## 3. Bringing it live — plan (zero UI rewrite) — Paystack included
-1. Copy mock arrays into `prisma/seed.ts` (3 categories → N categories, 12 → 100+ products)
-2. Provision Postgres (Neon free tier), set `DATABASE_URL` and `JWT_SECRET` in `.env` + Vercel env
-3. Add Paystack keys → `PAYSTACK_SECRET_KEY` (server) + `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY` (client) in `.env` + Vercel env (see `docs/PAYMENT.md`)
-4. `pnpm prisma migrate dev --name init` / `pnpm prisma migrate deploy` on prod + `pnpm prisma db seed`
-5. Implement `lib/prisma.ts`, `lib/auth.ts`, `lib/validators.ts` and the `app/api/*` routes exactly as documented in `docs/API.md` (shapes already match mocks). Payment routes `POST /api/payments/initialize` and `GET /api/payments/verify/:reference` are already stubbed — they call `lib/paystack.ts` which uses `fetch` to Paystack (no SDK install needed).
-6. Replace `import { products } from '@/lib/mock/products'` with `fetch('/api/products')` — components already expect that shape. For checkout, swap `lib/mock/store.ts` `checkout()` with `fetch('/api/payments/initialize')` → redirect to `authorization_url` → Paystack → webhook/verify → order created (see `docs/PAYMENT.md` flow).
-7. Add `postinstall` + `vercel-build` scripts from `docs/DEPLOYMENT.md`, push to Vercel — real Paystack checkout replaces mock checkout, UI unchanged.
+---
 
-Because mocks mirror Prisma shapes 1:1 (and mock `Payment.reference` mirrors Paystack `reference`), the swap is a find-replace, not a refactor.
+## 2. Project Scope
 
-## 4. Temu / AliExpress parity — what we copied
-Visited **temu.com** and **aliexpress.com** and matched the dense, shoppable feel:
+The E-Commerce Order System is intended to be developed as a collaborative full-stack project consisting of several interconnected components.
 
-- **Layout:** dark catalog (`#0a0a0a` bg, `#1a1a1a` cards), sticky header, left filter rail, `Grid | List` toggle, `Sort: Recommended`
-- **Mega-menu (`Today's Deal` at `app/page.tsx:297`):** table-driven from `lib/mock/categories.ts` — `Topwear / Bottomwear / Gadget / Personal Care / Toys & Games / Sunglasses & Frames / Watches / Festive Wear`, each with 8–12 leaf links, plus a `Flat 50% OFF` promo tile with 3 lifestyle images (as on Temu). New categories are an insert, not a code change.
-- **Filters:** price slider `$8–$1200`, discount `10%/20%/30%`, color swatches `white/black/green/blue/... + 5+ more`, rating `All/3+/4+/4.5+`, brand checkboxes — all client-side but ready to become query params
-- **Cards:** `New` green badge / `% OFF` red badge, wishlist heart, `$price $oldPrice` strikethrough, `Add to Cart` ↔ `Go to Cart ->` state, hover `scale-105`
-- **Images:** 100s of online images planned (Unsplash + Picsum per category — earbuds, controllers, headphones, watches, phones, apparel, etc.) so the store looks stocked on day one. Current 12 are the seed; expansion is adding URLs to `lib/mock/products.ts` / later `imageUrl` in `Product`
+The broader project scope includes:
 
-**What will change as it scales (tablesp / table-driven):** Nav labels, promo tiles, filter options, and even page sections are driven by `Category`/`Product` tables. Adding "Kitchen Appliances" or "Beauty & Skincare" sub-items is a DB row or a JSON entry — no nav code changes. That is why the header will keep evolving while the component stays the same.
+* User authentication and authorization
+* Product management
+* Product catalogue and search
+* Shopping cart management
+* Order processing
+* Payment processing
+* Administrative management
+* Database persistence
+* Frontend user experience
+* Testing and deployment
 
-## 5. What we did — task by task (solo coverage)
-| Team | Spec branch | Solo outcome |
-|---|---|---|
-| A | `feature/auth` | Documented JWT flow, `middleware.ts` guard, `/auth/me` — mocked via `localStorage` so login/protect UI works |
-| B | `feature/products-api` | Schema + `GET /products` pagination/search spec'd; mock implements same with 100+ images |
-| C | `feature/cart` | Cart endpoints spec'd; `lib/mock/store.ts` validates `qty > 0`, stock mock, add/update/remove |
-| D | `feature/orders-api` | Transactional checkout spec'd; mock `checkout()` creates order + payment mock + clears cart; empty cart → 400 |
-| E | `feature/frontend-store` | **Shipped:** `app/page.tsx` Shopix landing → shop grid, product detail pattern, cart, checkout, orders — Temu/AliExpress parity, fully responsive |
-| F | `feature/admin-dashboard` | Mock admin product/order pages gated by mock `ADMIN` role; real `app/admin/*` will wrap the same components with `middleware.ts` |
-| G | `docs + tests` | **Shipped:** full `docs/` suite (`ARCHITECTURE`, `DATABASE`, `API`, `SETUP`, `SECURITY`, `TESTING`, `DEPLOYMENT`, `GIT_WORKFLOW`, `TASKS`) + this `REPORT.md`, `.env.example`, `README.md` |
+At the current stage, the implementation is focused specifically on the **frontend portion of the system**.
 
-## 6. What we did not do (and why) — now updated for real Paystack
-- **No `pnpm add` / `pnpm prisma generate` / `migrate` / `approve-builds` yet:** repo stayed frontend-only per first instruction, but Paystack is now stubbed via `fetch` (no SDK install). Adding real Paystack is just env vars (`PAYSTACK_SECRET_KEY` + `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY`) + flipping `lib/paystack.ts` from mock to live — no new deps.
-- **Payments are now real (Paystack):** mock `Payment` with `status = PAID` was the placeholder; real flow is `POST /api/payments/initialize` → `authorization_url` → Paystack checkout → `GET /api/payments/verify/:reference` → `Payment` + `Order` created. See `docs/PAYMENT.md` for full flow, webhook, and mock fallback when keys are unset. Cart → Checkout → Pay with Paystack buttons in the mock UI already call this.
-- **No hard-coded navs:** everything comes from the category table/mock so the store can absorb Temu-style expansion (100s of categories/images) without relabeling. Every button in `app/page.tsx` is now wired (see §8).
+The backend components are not presented as completed functionality in this report. They represent the subsequent stages required to connect the frontend to persistent data and production services.
 
-## 7. How to evaluate this repo
-- `pnpm dev` → store works with no env/DB
-- Read `docs/ARCHITECTURE.md` → target wiring
-- Read `docs/DATABASE.md` → Prisma schema + mock parity table
-- Read `docs/API.md` → every endpoint contract + mock equivalents
-- Visit Temu/AliExpress → compare density/mega-menu/filters → this UI matches
+---
 
-This report satisfies the capstone requirement: we **tell the collaboration story truthfully, show the mock-first frontend that is live today, and lay a zero-rewrite plan to bring the real Postgres backend live.**
+## 3. Current Implementation
+
+The current implementation provides the frontend structure and user experience for the e-commerce application.
+
+The application currently includes interfaces for:
+
+* Product browsing
+* Product categories
+* Product search
+* Product filtering
+* Product sorting
+* Product display
+* Cart management
+* Checkout
+* Order history
+* Order status
+* Responsive layouts
+
+The application uses mock data to populate the interface and simulate the information that will eventually be retrieved from the backend.
+
+This makes it possible to demonstrate the intended shopping experience without requiring a configured database at this stage.
+
+---
+
+## 4. Application Structure
+
+The frontend has been structured around the expected e-commerce user journey:
+
+```text
+Storefront
+    ↓
+Browse Products
+    ↓
+Search / Filter
+    ↓
+View Product
+    ↓
+Add to Cart
+    ↓
+Review Cart
+    ↓
+Checkout
+    ↓
+View Order
+    ↓
+Track Order Status
+```
+
+This structure provides a clear separation between the major stages of the user experience and creates a foundation for connecting the frontend to backend services later.
+
+---
+
+## 5. Mock Data Implementation
+
+Mock data is currently used to represent the products, categories, and other information required by the frontend.
+
+The mock data allows the application to demonstrate the expected functionality without requiring a live database.
+
+The current mock implementation includes product information such as:
+
+* Product name
+* Product category
+* Product image
+* Current price
+* Previous price
+* Discount
+* Colour
+* Rating
+* Brand
+* Stock information
+
+The mock data is organized separately from the main interface so that it can later be replaced with data retrieved from the backend API.
+
+---
+
+## 6. Product Catalogue
+
+The storefront provides a product catalogue through which users can browse available products.
+
+Product cards are designed to display relevant information and actions, including:
+
+* Product image
+* Product name
+* Current price
+* Previous price where applicable
+* Discount information
+* Product status
+* Wishlist action
+* Add-to-cart action
+
+The catalogue is designed to accommodate additional products and categories as the project grows.
+
+---
+
+## 7. Product Categories and Navigation
+
+The frontend uses structured category data to populate the product navigation.
+
+The current category structure includes areas such as:
+
+* Topwear
+* Bottomwear
+* Gadgets
+* Personal Care
+* Toys & Games
+* Sunglasses & Frames
+* Watches
+* Festive Wear
+
+The navigation is designed to be data-driven rather than dependent on individually hard-coded category entries.
+
+This means that additional categories can be introduced by updating the underlying data structure when the project moves to a database-backed implementation.
+
+---
+
+## 8. Search and Filtering
+
+The storefront includes frontend search and filtering functionality.
+
+Users can interact with filters based on criteria such as:
+
+* Price
+* Discount
+* Colour
+* Rating
+* Brand
+
+The current filtering operations are performed against the mock product data.
+
+The structure also provides a foundation for connecting these filters to API query parameters when the backend is implemented.
+
+---
+
+## 9. Shopping Cart
+
+The frontend includes a shopping cart interface that allows users to manage selected products.
+
+The current cart interface supports:
+
+* Adding products to the cart
+* Increasing product quantities
+* Decreasing product quantities
+* Removing products
+* Reviewing selected products
+* Viewing cart totals
+* Proceeding to checkout
+
+The cart currently operates using mock frontend state and is not yet connected to persistent database storage.
+
+---
+
+## 10. Checkout
+
+A checkout interface has been implemented to represent the intended purchasing process.
+
+The current checkout flow uses mock data and frontend state to demonstrate how a customer would proceed from the cart to an order.
+
+The production checkout process will subsequently be connected to:
+
+1. The backend order service.
+2. Persistent cart and order data.
+3. Payment processing.
+4. Order confirmation.
+
+Therefore, the current checkout should be understood as a **frontend representation of the intended checkout experience**, rather than a completed production payment system.
+
+---
+
+## 11. Orders and Order Tracking
+
+The frontend includes interfaces for displaying orders and their statuses.
+
+Mock order information is currently used to demonstrate:
+
+* Order details
+* Ordered products
+* Order totals
+* Payment status
+* Order status
+* Order history
+
+The production implementation will replace this mock information with data retrieved from the order API and database.
+
+---
+
+## 12. Responsive Design
+
+The frontend has been structured to provide a responsive shopping experience across different screen sizes.
+
+The interface includes responsive layouts for:
+
+* Navigation
+* Product grids
+* Product cards
+* Filtering
+* Cart
+* Checkout
+* Order views
+
+The objective is to ensure that the core shopping experience remains usable across desktop and smaller screen sizes.
+
+---
+
+## 13. Design Direction
+
+The storefront takes inspiration from the dense and highly interactive shopping experience commonly found on large e-commerce platforms such as Temu and AliExpress.
+
+The implementation includes design patterns such as:
+
+* Dense product presentation
+* Category-driven navigation
+* Promotional sections
+* Product discounts
+* Product filtering
+* Grid and list views
+* Product cards
+* Shopping cart interactions
+* Responsive layouts
+
+These references were used as design inspiration for the shopping experience. The implementation itself is structured around the requirements of this project.
+
+---
+
+## 14. Planned Backend Integration
+
+The frontend is designed to accommodate the backend components that will be implemented as part of the wider project.
+
+The planned architecture includes:
+
+```text
+Frontend
+    ↓
+Next.js API
+    ↓
+Business Logic
+    ↓
+Prisma
+    ↓
+PostgreSQL
+```
+
+Additional services will support:
+
+```text
+Authentication
+Authorization
+Payment Processing
+Order Management
+Administration
+```
+
+The current frontend uses mock data in place of these services.
+
+---
+
+## 15. Mock Data to Live Data
+
+Once the backend is implemented, the current mock data can be replaced with data retrieved from the API.
+
+For example, the current product data can eventually be replaced by:
+
+```text
+GET /api/products
+```
+
+The cart functionality can subsequently communicate with the cart API, while checkout can communicate with the order and payment services.
+
+The purpose of structuring the frontend this way is to reduce unnecessary changes when the backend becomes available.
+
+---
+
+## 16. Planned Authentication
+
+Authentication is part of the overall system but has not yet been implemented as a production backend service in the current frontend stage.
+
+The planned authentication system will include:
+
+* User registration
+* User login
+* JWT authentication
+* HTTP-only cookies
+* Protected routes
+* Role-based authorization
+
+The frontend structure can subsequently be connected to these services when the authentication component is implemented.
+
+---
+
+## 17. Planned Payment Integration
+
+Paystack is the planned payment provider for the system.
+
+The intended production flow is:
+
+```text
+Cart
+  ↓
+Checkout
+  ↓
+Payment Initialization
+  ↓
+Paystack Checkout
+  ↓
+Payment Verification
+  ↓
+Order Confirmation
+```
+
+The current frontend does not represent a completed live Paystack payment system. Payment processing will be integrated when the backend payment component is implemented.
+
+---
+
+## 18. Current Status
+
+The current project status can be summarized as follows:
+
+| Component                     | Current Status              |
+| ----------------------------- | --------------------------- |
+| Frontend interface            | Implemented                 |
+| Application structure         | Implemented                 |
+| Product catalogue             | Implemented with mock data  |
+| Product categories            | Implemented with mock data  |
+| Search                        | Implemented with mock data  |
+| Filtering                     | Implemented with mock data  |
+| Cart interface                | Implemented with mock state |
+| Checkout interface            | Implemented with mock flow  |
+| Order interface               | Implemented with mock data  |
+| Responsive design             | Implemented                 |
+| Database                      | Pending                     |
+| Backend API                   | Pending                     |
+| Production authentication     | Pending                     |
+| Persistent cart               | Pending                     |
+| Persistent orders             | Pending                     |
+| Production payment processing | Pending                     |
+| Production deployment         | Pending                     |
+
+---
+
+## 19. Next Development Stages
+
+The following stages will complete the wider system:
+
+### Stage 1: Database
+
+Implement the PostgreSQL database and Prisma schema.
+
+### Stage 2: Backend APIs
+
+Implement the APIs required for:
+
+* Authentication
+* Products
+* Cart
+* Orders
+* Payments
+* Administration
+
+### Stage 3: Authentication
+
+Connect the frontend to the production authentication and authorization system.
+
+### Stage 4: Persistent Data
+
+Replace mock products, carts, and orders with database-backed data.
+
+### Stage 5: Payment Integration
+
+Connect the checkout process to Paystack and implement payment verification.
+
+### Stage 6: Testing
+
+Test the integrated system across the major user and administrative workflows.
+
+### Stage 7: Deployment
+
+Configure the production environment and deploy the completed application.
+
+---
+
+## 20. Conclusion
+
+The current stage of the E-Commerce Order System establishes the frontend foundation of the project.
+
+The implementation provides the major interfaces and user flows required for an e-commerce application while using mock data to represent the backend services that are yet to be integrated.
+
+The frontend structure has been organized to support the subsequent development of the database, backend APIs, authentication, order management, payment processing, and administrative functionality.
+
+The next phase of development will connect these backend components to the existing frontend and transition the application from a mock-data demonstration into a fully integrated e-commerce system.

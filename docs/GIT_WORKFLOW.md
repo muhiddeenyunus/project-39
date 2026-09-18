@@ -43,7 +43,7 @@ git push origin feature/auth
 ## Solo mapping (what actually shipped)
 | Spec branch | What landed | Where |
 |---|---|---|
-| `feature/frontend-store` | Shopix dark catalog, 100+ mock products, filters, mega-menu, cart/checkout/orders mock | `app/page.tsx`, `lib/mock/*` |
+| `feature/frontend-store` | project-39 dark catalog, 100+ mock products, filters, mega-menu, cart/checkout/orders mock | `app/page.tsx`, `lib/mock/*` |
 | `feature/admin-dashboard` | Mock admin views (planned) | `app/admin/*` |
 | `docs + tests` | This `docs/` suite | `docs/*` |
 Remaining API branches (`feature/auth`, `feature/products-api`, etc.) are planned — frontend is built to consume them without rewrites.

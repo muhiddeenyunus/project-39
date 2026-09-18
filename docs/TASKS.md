@@ -18,7 +18,7 @@ This capstone expected collaboration but was executed solo — see `docs/REPORT.
 | Spec member | Solo handling |
 |---|---|
 | A–D (backend) | Spec'd and documented (`docs/API.md`, `docs/DATABASE.md`). Mock equivalents in `lib/mock/*` let the UI be completed and graded without blocking on DB/JWT. |
-| E | **Done:** Shopix mock storefront at `app/page.tsx` — Temu/AliExpress-parity dense catalog, mega-menu, filters, grid/list, search, cart, checkout, order history, all mock-backed. 12 → 100+ products via Unsplash expansion (planned). |
+| E | **Done:** project-39 mock storefront at `app/page.tsx` — Temu/AliExpress-parity dense catalog, mega-menu, filters, grid/list, search, cart, checkout, order history, all mock-backed. 12 → 100+ products via Unsplash expansion (planned). |
 | F | **Done (mock):** Admin views will reuse same product/order shapes; access gated by mock role. Real guard is `middleware.ts` when JWT lands. |
 | G | **Done:** This `docs/` suite + `README.md` + `.env.example`, deployment plan for Vercel + Neon. |
 

@@ -38,7 +38,7 @@ src/
 │   ├── admin/products/page.tsx
 │   ├── admin/orders/page.tsx
 │   ├── about/page.tsx
-│   └── page.tsx                # landing — Shopix mock (now) → real catalog later
+│   └── page.tsx                # landing — project-39 mock (now) → real catalog later
 ├── components/                 # Navbar, ProductCard, CartItem, etc.
 ├── lib/
 │   ├── prisma.ts               # Prisma singleton
