@@ -1,5 +1,6 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { PRODUCTS as CATALOG, CATEGORIES, BRANDS, COLORS, type Product } from "@/lib/catalog";
 import {
   Search,
   Heart,
@@ -28,78 +29,14 @@ import {
   DollarSign,
 } from "lucide-react";
 
-type Product = {
-  id: number;
-  brand: string;
-  title: string;
-  price: number;
-  oldPrice?: number;
-  discount?: string;
-  badge?: "New" | string;
-  category: string;
-  color: string;
-  rating: number;
-  image: string;
-  inCart?: boolean;
-};
-
-const PRODUCTS: Product[] = [
-  { id: 1, brand: "Noise", title: "Buds X Prime Truly Wireless Earbuds", price: 99.99, category: "Electronics", color: "white", rating: 4.5, badge: "New", image: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=400&h=400&fit=crop" },
-  { id: 2, brand: "PowerA", title: "Fusion Pro Wireless Gaming Controller", price: 84.99, category: "Electronics", color: "black", rating: 4.6, badge: "New", image: "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=400&h=400&fit=crop" },
-  { id: 3, brand: "Apple", title: "AirPods Max Over-Ear Wireless Headphone", price: 549.99, oldPrice: 699.99, discount: "15% OFF", category: "Electronics", color: "gray", rating: 4.8, image: "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=400&h=400&fit=crop" },
-  { id: 4, brand: "Sony", title: "WH-1000XM5 Noise Cancelling Headphones", price: 349.99, oldPrice: 449.99, discount: "22% OFF", category: "Electronics", color: "black", rating: 4.9, image: "https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=400&h=400&fit=crop" },
-  { id: 5, brand: "Apple", title: "iPhone 14 Pro Max 256GB Deep Purple", price: 1199.99, category: "Mobile", color: "purple", rating: 4.9, badge: "New", image: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400&h=400&fit=crop" },
-  { id: 6, brand: "Samsung", title: "Galaxy S23 Ultra Phantom Black", price: 999.99, discount: "17% OFF", oldPrice: 1199.99, category: "Mobile", color: "black", rating: 4.7, image: "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=400&h=400&fit=crop" },
-  { id: 7, brand: "Titan", title: "Neo AMOLED Smartwatch with GPS", price: 129.99, oldPrice: 159.99, category: "Watches", color: "black", rating: 4.4, badge: "New", image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop" },
-  { id: 8, brand: "Fastrack", title: "Reflex Fitness Band with Heart Rate Monitor", price: 39.99, oldPrice: 49.99, category: "Watches", color: "black", rating: 4.2, badge: "New", image: "https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=400&h=400&fit=crop" },
-  { id: 9, brand: "Garmin", title: "Vivo Active GPS Sports Watch", price: 249.99, oldPrice: 299.99, discount: "17% OFF", category: "Watches", color: "black", rating: 4.6, image: "https://images.unsplash.com/photo-1555421689-d68471e189f2?w=400&h=400&fit=crop" },
-  { id: 10, brand: "Fossil", title: "Gen 6 Touchscreen Smart Watch", price: 199.99, oldPrice: 269.99, discount: "25% OFF", category: "Watches", color: "white", rating: 4.3, image: "https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=400&h=400&fit=crop" },
-  { id: 11, brand: "Noise", title: "Air Buds Pro 2 With ANC Technology", price: 59.99, oldPrice: 79.99, category: "Electronics", color: "white", rating: 4.1, badge: "New", image: "https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=400&h=400&fit=crop" },
-  { id: 12, brand: "Apple", title: "Apple Watch Ultra Rugged Titanium", price: 799.99, category: "Watches", color: "orange", rating: 4.9, badge: "New", image: "https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=400&h=400&fit=crop&sat=-100" },
-
-  { id: 13, brand: "Philips", title: "Air Fryer XL 6.2L with Rapid Air Tech", price: 149.99, oldPrice: 199.99, discount: "25% OFF", category: "Kitchen Appliances", color: "black", rating: 4.7, image: "https://images.unsplash.com/photo-1585237672814-8f85a8118bf6?w=400&h=400&fit=crop" },
-  { id: 14, brand: "Prestige", title: "Mixer Grinder 750W with 3 Jars", price: 69.99, category: "Kitchen Appliances", color: "red", rating: 4.3, image: "https://images.unsplash.com/photo-1585237672814-8f85a8118bf6?w=400&h=400&fit=crop" },
-  { id: 15, brand: "Bajaj", title: "Electric Kettle 1.5L Stainless Steel", price: 29.99, oldPrice: 39.99, discount: "25% OFF", category: "Kitchen Appliances", color: "white", rating: 4.2, image: "https://images.unsplash.com/photo-1544787219-7f47cc556763?w=400&h=400&fit=crop" },
-  { id: 16, brand: "Zara", title: "Oversized Cotton T-Shirt Pack of 3", price: 49.99, category: "Clothing", color: "white", rating: 4.6, badge: "New", image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop" },
-  { id: 17, brand: "Levis", title: "501 Original Fit Jeans - Dark Wash", price: 89.99, oldPrice: 119.99, discount: "25% OFF", category: "Clothing", color: "blue", rating: 4.5, image: "https://images.unsplash.com/photo-1542272604-787c3835535d?w=400&h=400&fit=crop" },
-  { id: 18, brand: "Nike", title: "Air Max 270 Sneakers - Triple White", price: 159.99, category: "Clothing", color: "white", rating: 4.8, badge: "New", image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop" },
-  { id: 19, brand: "Adidas", title: "Track Pants Tapered Fleece", price: 59.99, discount: "15% OFF", oldPrice: 69.99, category: "Clothing", color: "black", rating: 4.4, image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400&h=400&fit=crop" },
-  { id: 20, brand: "Lakme", title: "Absolute Serum Foundation SPF 30", price: 19.99, category: "Beauty & Skincare", color: "white", rating: 4.3, image: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=400&fit=crop" },
-  { id: 21, brand: "Maybelline", title: "Fit Me Matte Lipstick Set 6pc", price: 34.99, oldPrice: 49.99, discount: "30% OFF", category: "Beauty & Skincare", color: "red", rating: 4.6, image: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=400&h=400&fit=crop" },
-  { id: 22, brand: "Ikea", title: "LACK Wall Shelf 190cm White", price: 39.99, category: "Home Decor", color: "white", rating: 4.5, image: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=400&fit=crop" },
-  { id: 23, brand: "HomeCentre", title: "Decor Vase Set Ceramic 3pc", price: 79.99, oldPrice: 99.99, discount: "20% OFF", category: "Home Decor", color: "gray", rating: 4.4, image: "https://images.unsplash.com/photo-1517705008128-361805f42e86?w=400&h=400&fit=crop" },
-  { id: 24, brand: "Lego", title: "Star Wars The Mandalorian Set 753", price: 49.99, category: "Toys & Games", color: "gray", rating: 4.9, badge: "New", image: "https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?w=400&h=400&fit=crop" },
-  { id: 25, brand: "Sony", title: "PS5 DualSense Wireless Controller", price: 69.99, category: "Toys & Games", color: "white", rating: 4.8, image: "https://images.unsplash.com/photo-1604586376807-f73185cf5867?w=400&h=400&fit=crop" },
-  { id: 26, brand: "OnePlus", title: "Nord Buds 2R Wireless Earbuds", price: 39.99, oldPrice: 59.99, discount: "33% OFF", category: "Electronics", color: "black", rating: 4.3, image: "https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=400&h=400&fit=crop" },
-  { id: 27, brand: "JBL", title: "Tune 760NC Wireless Headphones", price: 129.99, category: "Electronics", color: "blue", rating: 4.5, image: "https://images.unsplash.com/photo-1583394838336-acd977736f90?w=400&h=400&fit=crop" },
-  { id: 28, brand: "Casio", title: "G-Shock Digital Sports Watch", price: 149.99, discount: "17% OFF", oldPrice: 179.99, category: "Watches", color: "black", rating: 4.7, image: "https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=400&h=400&fit=crop" },
-  { id: 29, brand: "Realme", title: "Narzo 60 5G 128GB Mars Orange", price: 249.99, category: "Mobile", color: "orange", rating: 4.4, image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=400&fit=crop" },
-  { id: 30, brand: "Xiaomi", title: "Redmi Note 12 Pro 256GB Frosted Blue", price: 299.99, oldPrice: 349.99, discount: "14% OFF", category: "Mobile", color: "blue", rating: 4.5, image: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=400&h=400&fit=crop" },
-  { id: 31, brand: "H&M", title: "Slim Fit Blazer & Coats Wool Blend", price: 129.99, category: "Clothing", color: "gray", rating: 4.2, badge: "New", image: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=400&h=400&fit=crop" },
-  { id: 32, brand: "Forest Essentials", title: "Sunscreen SPF 50 PA+++ 100ml", price: 24.99, category: "Beauty & Skincare", color: "white", rating: 4.7, image: "https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400&h=400&fit=crop" },
-  { id: 33, brand: "Pepperfry", title: "Indoor Floor Lamp Modern Arc", price: 89.99, category: "Home Decor", color: "black", rating: 4.3, image: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=400&h=400&fit=crop" },
-  { id: 34, brand: "Hot Wheels", title: "Collector Race Track Set", price: 29.99, category: "Toys & Games", color: "red", rating: 4.6, image: "https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=400&h=400&fit=crop" },
-  { id: 35, brand: "KitchenAid", title: "Hand Blender 5-Speed Red", price: 99.99, oldPrice: 129.99, discount: "23% OFF", category: "Kitchen Appliances", color: "red", rating: 4.8, image: "https://images.unsplash.com/photo-1578849278619-e730829bd58e?w=400&h=400&fit=crop" },
-  { id: 36, brand: "Bose", title: "SoundLink Flex Bluetooth Speaker", price: 149.99, category: "Electronics", color: "black", rating: 4.7, image: "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=400&h=400&fit=crop" },
-  { id: 37, brand: "Boat", title: "Storm Smartwatch 1.3 Curved Display", price: 49.99, oldPrice: 79.99, discount: "37% OFF", category: "Watches", color: "blue", rating: 4.2, image: "https://images.unsplash.com/photo-1508685096788-8be732f0144d?w=400&h=400&fit=crop" },
-  { id: 38, brand: "Oppo", title: "Reno 10 5G Silvery Grey 256GB", price: 449.99, category: "Mobile", color: "gray", rating: 4.6, image: "https://images.unsplash.com/photo-1585060544812-6b45742d762f?w=400&h=400&fit=crop" },
-  { id: 39, brand: "Ray Ban", title: "Aviator Classic Gold Sunglasses", price: 159.99, discount: "20% OFF", oldPrice: 199.99, category: "Clothing", color: "black", rating: 4.8, image: "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=400&h=400&fit=crop" },
-  { id: 40, brand: "Nivea", title: "Face Wash + Cleanser Duo Pack", price: 14.99, category: "Beauty & Skincare", color: "blue", rating: 4.1, image: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400&h=400&fit=crop" },
-];
-
-const CATEGORIES = ["All", "Electronics", "Kitchen Appliances", "Watches", "Mobile", "Clothing", "Beauty & Skincare", "Home Decor", "Toys & Games"];
-const BRANDS = ["Noise", "PowerA", "Apple", "Titan", "Fastrack", "Garmin", "Sony", "Samsung"];
-const COLORS = [
-  { name: "white", hex: "#ffffff" },
-  { name: "black", hex: "#1f2937" },
-  { name: "green", hex: "#00d084" },
-  { name: "blue", hex: "#1e90ff" },
-  { name: "gray", hex: "#9ca3af" },
-  { name: "slate", hex: "#475569" },
-  { name: "red", hex: "#ff2a5a" },
-];
-
 export default function Home() {
+  const [products, setProducts] = useState<Product[]>(CATALOG);
+  const [user, setUser] = useState<{ id: string; name: string; email: string; role: string } | null>(null);
+  const [authMode, setAuthMode] = useState<"login" | "register" | null>(null);
+  const [authForm, setAuthForm] = useState({ name: "", email: "", password: "" });
+  const [authError, setAuthError] = useState("");
+  const [orders, setOrders] = useState<Array<{ id: string; total: number; status: string; createdAt: string }>>([]);
+  const [showOrders, setShowOrders] = useState(false);
   const [category, setCategory] = useState("All");
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<[number, number]>([8, 1200]);
@@ -117,15 +54,117 @@ export default function Home() {
   const [showProfile, setShowProfile] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [cartView, setCartView] = useState<"shop" | "cart">("shop");
-  const [showFakePayment, setShowFakePayment] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState("");
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/products")
+      .then((r) => r.json())
+      .then((j) => {
+        const items = j?.data?.items;
+        if (j.success && Array.isArray(items) && items.length) setProducts(items);
+      })
+      .catch(() => {});
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.success) setUser(j.data);
+      })
+      .catch(() => {});
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("login") === "1") setAuthMode("login");
+    if (params.get("paid") === "1") {
+      setPaymentSuccess(true);
+      setCartView("shop");
+      window.history.replaceState({}, "", "/");
+      setTimeout(() => setPaymentSuccess(false), 4000);
+    }
+    if (params.get("pay") === "failed") {
+      setPayError("Payment was not completed. Please try again.");
+      setCartView("cart");
+      window.history.replaceState({}, "", "/");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    fetch("/api/cart")
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.success) setCart((j.data.items || []).map((i: { productId: number }) => i.productId));
+      })
+      .catch(() => {});
+    fetch("/api/orders")
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.success) setOrders(j.data || []);
+      })
+      .catch(() => {});
+  }, [user]);
+
+  async function submitAuth(e: React.FormEvent) {
+    e.preventDefault();
+    setAuthError("");
+    const path = authMode === "register" ? "/api/auth/register" : "/api/auth/login";
+    const res = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(authForm),
+    });
+    const json = await res.json();
+    if (!json.success) {
+      setAuthError(json.message || "Auth failed");
+      return;
+    }
+    setUser(json.data);
+    setAuthMode(null);
+  }
+
+  async function logout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    setUser(null);
+    setShowProfile(false);
+    setOrders([]);
+  }
+
+  async function checkoutNow() {
+    if (!user) {
+      setAuthMode("login");
+      return;
+    }
+    setPayError("");
+    setPaying(true);
+    const res = await fetch("/api/payments/initialize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        shippingAddress: "Campus address",
+        items: cart.map((id) => ({ productId: id, quantity: 1 })),
+      }),
+    });
+    const json = await res.json();
+    if (!json.success) {
+      setPaying(false);
+      setPayError(json.message || "Could not start payment. Please try again.");
+      return;
+    }
+    window.location.href = json.data.authorizationUrl;
+  }
 
   const toggleBrand = (b: string) => setSelectedBrands((p) => (p.includes(b) ? p.filter((x) => x !== b) : [...p, b]));
   const toggleWishlist = (id: number) => setWishlist((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
-  const toggleCart = (id: number) => setCart((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+  const toggleCart = (id: number) => {
+    setCart((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+    if (user) {
+      const inCart = cart.includes(id);
+      if (inCart) fetch(`/api/cart/items/${id}`, { method: "DELETE" });
+      else fetch("/api/cart", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ productId: id, quantity: 1 }) });
+    }
+  };
 
   const filtered = useMemo(() => {
-    let r = [...PRODUCTS];
+    let r = [...products];
     if (category !== "All") r = r.filter((p) => p.category === category);
     if (selectedBrands.length) r = r.filter((p) => selectedBrands.includes(p.brand));
     r = r.filter((p) => p.price >= priceRange[0] && p.price <= priceRange[1]);
@@ -147,7 +186,7 @@ export default function Home() {
     if (sortBy === "Price: High to Low") r.sort((a, b) => b.price - a.price);
     if (sortBy === "Rating") r.sort((a, b) => b.rating - a.rating);
     return r;
-  }, [category, selectedBrands, priceRange, discountFilter, selectedColor, ratingFilter, search, sortBy]);
+  }, [products, category, selectedBrands, priceRange, discountFilter, selectedColor, ratingFilter, search, sortBy]);
 
   const clearAll = () => {
     setCategory("All");
@@ -265,16 +304,19 @@ export default function Home() {
                 <div className={`absolute right-0 top-full mt-2 w-64 rounded-2xl border shadow-2xl overflow-hidden z-50 ${isDark ? "bg-[#1a1a1a] border-white/10" : "bg-white border-zinc-200"}`}>
                   <div className={`p-4 flex gap-3 border-b ${isDark ? "border-white/10" : "border-zinc-100"}`}>
                     <img src="https://i.pravatar.cc/100?img=12" alt="" className="size-10 rounded-xl" />
-                    <div><p className={`text-sm font-semibold ${isDark ? "text-white" : "text-zinc-900"}`}>Cristofer Torff</p><p className="text-xs text-zinc-500">Cr@example.com</p></div>
+                    <div><p className={`text-sm font-semibold ${isDark ? "text-white" : "text-zinc-900"}`}>{user?.name || "Guest"}</p><p className="text-xs text-zinc-500">{user?.email || "Sign in to continue"}</p></div>
                   </div>
                   <div className="p-2 space-y-1 text-sm">
                     <button onClick={() => setShowProfile(false)} className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left ${isDark ? "hover:bg-white/10 text-white" : "hover:bg-zinc-100 text-zinc-900"} cursor-pointer`}><User size={16} /> My Profile</button>
                     <button onClick={() => { setShowProfile(false); setCartView("shop"); }} className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left ${isDark ? "hover:bg-white/10 text-white" : "hover:bg-zinc-100 text-zinc-900"} cursor-pointer`}><Heart size={16} /> My Wishlist</button>
-                    <button onClick={() => { setShowProfile(false); setCartView("cart"); }} className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left ${isDark ? "hover:bg-white/10 text-white" : "hover:bg-zinc-100 text-zinc-900"} cursor-pointer`}><Package size={16} /> My Orders</button>
+                    <button onClick={() => { setShowProfile(false); setShowOrders(true); }} className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left ${isDark ? "hover:bg-white/10 text-white" : "hover:bg-zinc-100 text-zinc-900"} cursor-pointer`}><Package size={16} /> My Orders</button>
+                    {user?.role === "ADMIN" && <a href="/admin" className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left ${isDark ? "hover:bg-white/10 text-white" : "hover:bg-zinc-100 text-zinc-900"}`}>Admin</a>}
+                    {!user && <button onClick={() => { setShowProfile(false); setAuthMode("login"); }} className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left ${isDark ? "hover:bg-white/10 text-white" : "hover:bg-zinc-100 text-zinc-900"} cursor-pointer`}><User size={16} /> Login</button>}
+                    {!user && <button onClick={() => { setShowProfile(false); setAuthMode("register"); }} className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left ${isDark ? "hover:bg-white/10 text-white" : "hover:bg-zinc-100 text-zinc-900"} cursor-pointer`}><User size={16} /> Register</button>}
                     <button className={`cursor-pointer w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left ${isDark ? "hover:bg-white/10 text-white" : "hover:bg-zinc-100 text-zinc-900"}`}><Gift size={16} /> Gift Cards</button>
                     <button className={`cursor-pointer w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left ${isDark ? "hover:bg-white/10 text-white" : "hover:bg-zinc-100 text-zinc-900"}`}><RotateCcw size={16} /> Return & Refunds</button>
                     <div className={`h-px my-1 ${isDark ? "bg-white/10" : "bg-zinc-100"}`} />
-                    <button onClick={() => setShowProfile(false)} className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left text-[#ff2a5a] hover:bg-[#ff2a5a]/10 cursor-pointer"><LogOut size={16} /> Logout</button>
+                    <button onClick={logout} className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left text-[#ff2a5a] hover:bg-[#ff2a5a]/10 cursor-pointer"><LogOut size={16} /> Logout</button>
                   </div>
                 </div>
               )}
@@ -328,7 +370,7 @@ export default function Home() {
                 <p className={`font-medium ${isDark ? "text-white" : "text-zinc-900"}`}>Add more from Wishlist</p>
                 <ArrowRight size={18} className="text-zinc-500" />
               </div>
-              {PRODUCTS.filter(p => cart.includes(p.id)).slice(0,2).concat(PRODUCTS.filter(p => !cart.includes(p.id)).slice(0, Math.max(0,2-cart.length))).map(p => (
+              {products.filter(p => cart.includes(p.id)).slice(0,2).concat(products.filter(p => !cart.includes(p.id)).slice(0, Math.max(0,2-cart.length))).map(p => (
                 <div key={p.id} className={`rounded-xl overflow-hidden border flex ${isDark ? "bg-[#141414] border-white/10" : "bg-white border-zinc-200"}`}>
                   <div className={`w-40 shrink-0 flex items-center justify-center p-4 relative ${isDark ? "bg-[#242424]" : "bg-zinc-50"}`}>
                     <span className={`absolute top-2 left-2 size-5 rounded border flex items-center justify-center ${isDark ? "bg-white border-white" : "bg-white border-zinc-300"}`}><Check size={12} className="text-black" /></span>
@@ -344,7 +386,7 @@ export default function Home() {
                     <p className={`font-semibold mt-1 ${isDark ? "text-white" : "text-zinc-900"}`}>{p.brand}</p>
                     <p className="text-xs text-zinc-500 line-clamp-2">{p.title} with 13mm drivers, environmental noise cancellation for calls, low-latency gaming mode, and a 40-hour battery life.</p>
                     <p className="text-xs text-zinc-500 mt-2">Size: M &nbsp;|&nbsp; Qty: 1 &nbsp;|&nbsp; Color: {p.color}</p>
-                    <p className={`text-sm font-bold mt-1 ${isDark ? "text-white" : "text-zinc-900"}`}>${p.price.toFixed(2)} <span className="text-xs text-zinc-500 line-through font-normal">{p.oldPrice ? `$${p.oldPrice.toFixed(2)}` : `$${p.price.toFixed(2)}`}</span></p>
+                    <p className={`text-sm font-bold mt-1 ${isDark ? "text-white" : "text-zinc-900"}`}>₦{p.price.toFixed(2)} <span className="text-xs text-zinc-500 line-through font-normal">{p.oldPrice ? `₦${p.oldPrice.toFixed(2)}` : `₦${p.price.toFixed(2)}`}</span></p>
                   </div>
                 </div>
               ))}
@@ -358,14 +400,15 @@ export default function Home() {
                 <input placeholder="Add discount code" className={`w-full mt-2 rounded-lg px-3 py-2 text-xs outline-none border ${isDark ? "bg-black border-white/10 text-white placeholder:text-zinc-600" : "bg-white border-zinc-200 text-zinc-900 placeholder:text-zinc-400"}`} />
               </div>
               <div className="mt-4 space-y-3 text-sm">
-                <div className="flex justify-between"><span className="text-zinc-500">Subtotal</span><span className={isDark ? "text-white font-medium" : "text-zinc-900 font-medium"}>${(cart.reduce((s,id)=> s + (PRODUCTS.find(p=>p.id===id)?.price||0),0) || 229.98).toFixed(2)}</span></div>
-                <div className="flex justify-between"><span className="text-zinc-500">Shipping Cost (+)</span><span className={isDark ? "text-white" : "text-zinc-900"}>$10.66</span></div>
-                <div className="flex justify-between"><span className="text-zinc-500">Discount (-)</span><span className={isDark ? "text-white" : "text-zinc-900"}>$30.00</span></div>
+                <div className="flex justify-between"><span className="text-zinc-500">Subtotal</span><span className={isDark ? "text-white font-medium" : "text-zinc-900 font-medium"}>₦{(cart.reduce((s,id)=> s + (products.find(p=>p.id===id)?.price||0),0) || 229.98).toFixed(2)}</span></div>
+                <div className="flex justify-between"><span className="text-zinc-500">Shipping Cost (+)</span><span className={isDark ? "text-white" : "text-zinc-900"}>₦10.66</span></div>
+                <div className="flex justify-between"><span className="text-zinc-500">Discount (-)</span><span className={isDark ? "text-white" : "text-zinc-900"}>₦30.00</span></div>
                 <div className={`h-px ${isDark ? "bg-white/10" : "bg-zinc-200"}`} />
-                <div className="flex justify-between font-semibold"><span className={isDark ? "text-white" : "text-zinc-900"}>Total Payable</span><span className={isDark ? "text-white" : "text-zinc-900"}>${(cart.reduce((s,id)=> s + (PRODUCTS.find(p=>p.id===id)?.price||0),10.66-30) || 240.64).toFixed(2)}</span></div>
+                <div className="flex justify-between font-semibold"><span className={isDark ? "text-white" : "text-zinc-900"}>Total Payable</span><span className={isDark ? "text-white" : "text-zinc-900"}>₦{(cart.reduce((s,id)=> s + (products.find(p=>p.id===id)?.price||0),10.66-30) || 240.64).toFixed(2)}</span></div>
               </div>
-              <button onClick={() => setShowFakePayment(true)} className={`w-full mt-6 py-3 rounded-full text-sm font-semibold ${isDark ? "bg-white text-black" : "bg-zinc-900 text-white"} cursor-pointer`}>Pay Now</button>
-              <p className="text-xs text-zinc-500 text-center mt-2">Fake payment — no real money charged.</p>
+              <button onClick={checkoutNow} disabled={paying} className={`w-full mt-6 py-3 rounded-full text-sm font-semibold ${isDark ? "bg-white text-black" : "bg-zinc-900 text-white"} cursor-pointer`}>{paying ? "Redirecting to Paystack..." : "Pay Now"}</button>
+              <p className="text-xs text-zinc-500 text-center mt-2">Secured by Paystack.</p>
+              {payError && <p className="text-xs text-[#ff2a5a] text-center mt-2">{payError}</p>}
             </div>
           </div>
         </div>
@@ -432,7 +475,7 @@ export default function Home() {
             <input type="range" min={8} max={1200} value={priceRange[0]} onChange={(e) => setPriceRange([parseInt(e.target.value), priceRange[1]])} className="w-full opacity-0 -mt-3 block" />
             <input type="range" min={8} max={1200} value={priceRange[1]} onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])} className="w-full opacity-0 -mt-3 block" />
             <div className={`flex justify-between text-xs mt-1 ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-              <span>${priceRange[0]}</span><span>${priceRange[1]}</span>
+              <span>₦{priceRange[0]}</span><span>₦{priceRange[1]}</span>
             </div>
           </div>
 
@@ -545,8 +588,8 @@ export default function Home() {
                     <p className={`text-sm font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>{p.brand}</p>
                     <p className={`text-xs line-clamp-1 ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>{p.title}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className={`text-sm font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>${p.price.toFixed(2)}</span>
-                      {p.oldPrice && <span className="text-xs text-zinc-500 line-through">${p.oldPrice.toFixed(2)}</span>}
+                      <span className={`text-sm font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>₦{p.price.toFixed(2)}</span>
+                      {p.oldPrice && <span className="text-xs text-zinc-500 line-through">₦{p.oldPrice.toFixed(2)}</span>}
                       <span className={`ml-auto flex items-center gap-1 text-[11px] ${isDark ? "text-zinc-400" : "text-zinc-500"}`}><Star size={10} className="fill-amber-400 text-amber-400" />{p.rating}</span>
                     </div>
                     <button onClick={() => toggleCart(p.id)}
@@ -586,37 +629,64 @@ export default function Home() {
       
       <button className={`cursor-pointer fixed bottom-4 right-4 text-xs font-bold px-4 py-2 rounded-full shadow-xl border hidden lg:block ${isDark ? "bg-white text-black border-black/10" : "bg-zinc-900 text-white border-zinc-900"}`}>Buy Now</button>
 
-      {showFakePayment && (
+      {paymentSuccess && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div onClick={() => setShowFakePayment(false)} className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-          <div className={`relative w-full max-w-md rounded-2xl border p-6 shadow-2xl ${isDark ? "bg-[#1a1a1a] border-white/10" : "bg-white border-zinc-200"}`}>
-            <div className="flex items-center justify-between">
-              <h3 className={`text-lg font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>Fake Payment</h3>
-              <button onClick={() => setShowFakePayment(false)} className={`size-8 rounded-full flex items-center justify-center border cursor-pointer ${isDark ? "border-white/10 hover:bg-white/10" : "border-zinc-200 hover:bg-zinc-100"}`}><X size={16} /></button>
-            </div>
-            {!paymentSuccess ? (
-              <div className="mt-4 space-y-3">
-                <p className={`text-sm ${isDark ? "text-zinc-400" : "text-zinc-600"}`}>No real money will be charged. Click Pay to simulate success.</p>
-                <input placeholder="4242 4242 4242 4242" className={`w-full rounded-xl px-3 py-2.5 text-sm border outline-none ${isDark ? "bg-black border-white/10 text-white placeholder:text-zinc-500" : "bg-zinc-50 border-zinc-200 text-zinc-900 placeholder:text-zinc-400"}`} />
-                <div className="grid grid-cols-2 gap-3">
-                  <input placeholder="MM / YY" className={`rounded-xl px-3 py-2.5 text-sm border outline-none ${isDark ? "bg-black border-white/10 text-white placeholder:text-zinc-500" : "bg-zinc-50 border-zinc-200 text-zinc-900 placeholder:text-zinc-400"}`} />
-                  <input placeholder="CVC" className={`rounded-xl px-3 py-2.5 text-sm border outline-none ${isDark ? "bg-black border-white/10 text-white placeholder:text-zinc-500" : "bg-zinc-50 border-zinc-200 text-zinc-900 placeholder:text-zinc-400"}`} />
-                </div>
-                <button onClick={() => { setPaymentSuccess(true); setTimeout(() => { setCart([]); setShowFakePayment(false); setPaymentSuccess(false); setCartView("shop"); }, 1200); }} className={`w-full py-3 rounded-full text-sm font-semibold cursor-pointer ${isDark ? "bg-white text-black" : "bg-zinc-900 text-white"}`}>Pay ${(cart.reduce((s,id)=> s + (PRODUCTS.find(p=>p.id===id)?.price||0),10.66-30) || 240.64).toFixed(2)}</button>
-                <button onClick={() => setShowFakePayment(false)} className={`w-full py-2.5 rounded-full text-sm font-medium border cursor-pointer ${isDark ? "border-white/10 text-zinc-400 hover:bg-white/5" : "border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}>Cancel</button>
-              </div>
-            ) : (
-              <div className="mt-6 text-center">
-                <div className="mx-auto size-12 rounded-full bg-[#00d084] flex items-center justify-center"><Check size={20} className="text-white" /></div>
-                <p className={`mt-3 font-semibold ${isDark ? "text-white" : "text-zinc-900"}`}>Payment Successful</p>
-                <p className="text-sm text-zinc-500 mt-1">Fake transaction completed.</p>
-              </div>
-            )}
+          <div onClick={() => setPaymentSuccess(false)} className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className={`relative w-full max-w-md rounded-2xl border p-6 shadow-2xl text-center ${isDark ? "bg-[#1a1a1a] border-white/10" : "bg-white border-zinc-200"}`}>
+            <div className="mx-auto size-12 rounded-full bg-[#00d084] flex items-center justify-center"><Check size={20} className="text-white" /></div>
+            <p className={`mt-3 font-semibold ${isDark ? "text-white" : "text-zinc-900"}`}>Payment Successful</p>
+            <p className="text-sm text-zinc-500 mt-1">Your order has been placed.</p>
+            <button onClick={() => setPaymentSuccess(false)} className={`mt-4 px-6 py-2.5 rounded-full text-sm font-medium border cursor-pointer ${isDark ? "border-white/10 text-zinc-300 hover:bg-white/5" : "border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}>Continue shopping</button>
           </div>
         </div>
       )}
 
       
+      {authMode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div onClick={() => setAuthMode(null)} className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <form onSubmit={submitAuth} className={`relative w-full max-w-md rounded-2xl border p-6 shadow-2xl ${isDark ? "bg-[#1a1a1a] border-white/10" : "bg-white border-zinc-200"}`}>
+            <div className="flex items-center justify-between">
+              <h3 className={`text-lg font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>{authMode === "register" ? "Register" : "Login"}</h3>
+              <button type="button" onClick={() => setAuthMode(null)} className={`size-8 rounded-full flex items-center justify-center border cursor-pointer ${isDark ? "border-white/10 hover:bg-white/10" : "border-zinc-200 hover:bg-zinc-100"}`}><X size={16} /></button>
+            </div>
+            <div className="mt-4 space-y-3">
+              {authMode === "register" && (
+                <input required value={authForm.name} onChange={(e) => setAuthForm({ ...authForm, name: e.target.value })} placeholder="Name" className={`w-full rounded-xl px-3 py-2.5 text-sm border outline-none ${isDark ? "bg-black border-white/10 text-white" : "bg-zinc-50 border-zinc-200 text-zinc-900"}`} />
+              )}
+              <input required type="email" value={authForm.email} onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })} placeholder="Email" className={`w-full rounded-xl px-3 py-2.5 text-sm border outline-none ${isDark ? "bg-black border-white/10 text-white" : "bg-zinc-50 border-zinc-200 text-zinc-900"}`} />
+              <input required type="password" value={authForm.password} onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })} placeholder="Password" className={`w-full rounded-xl px-3 py-2.5 text-sm border outline-none ${isDark ? "bg-black border-white/10 text-white" : "bg-zinc-50 border-zinc-200 text-zinc-900"}`} />
+              {authError && <p className="text-sm text-[#ff2a5a]">{authError}</p>}
+              <button type="submit" className={`w-full py-3 rounded-full text-sm font-semibold cursor-pointer ${isDark ? "bg-white text-black" : "bg-zinc-900 text-white"}`}>{authMode === "register" ? "Create account" : "Login"}</button>
+              <button type="button" onClick={() => setAuthMode(authMode === "login" ? "register" : "login")} className={`w-full py-2 text-sm cursor-pointer ${isDark ? "text-zinc-400" : "text-zinc-600"}`}>
+                {authMode === "login" ? "Need an account? Register" : "Have an account? Login"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {showOrders && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div onClick={() => setShowOrders(false)} className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className={`relative w-full max-w-lg rounded-2xl border p-6 shadow-2xl max-h-[80vh] overflow-y-auto ${isDark ? "bg-[#1a1a1a] border-white/10" : "bg-white border-zinc-200"}`}>
+            <div className="flex items-center justify-between">
+              <h3 className={`text-lg font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>My Orders</h3>
+              <button onClick={() => setShowOrders(false)} className={`size-8 rounded-full flex items-center justify-center border cursor-pointer ${isDark ? "border-white/10" : "border-zinc-200"}`}><X size={16} /></button>
+            </div>
+            <div className="mt-4 space-y-3">
+              {orders.length === 0 && <p className="text-sm text-zinc-500">No orders yet.</p>}
+              {orders.map((o) => (
+                <div key={o.id} className={`rounded-xl border p-3 text-sm ${isDark ? "border-white/10" : "border-zinc-200"}`}>
+                  <p className="font-medium">{o.id}</p>
+                  <p className="text-zinc-500">₦{Number(o.total).toFixed(2)} · {o.status}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       <footer className={`border-t px-4 lg:px-8 py-8 mt-4 ${isDark ? "border-white/10 bg-[#0f0f0f]" : "border-zinc-200 bg-white"}`}>
         <div className={`flex flex-col md:flex-row justify-between gap-6 text-sm ${isDark ? "text-zinc-500" : "text-zinc-600"}`}>
           <div>
