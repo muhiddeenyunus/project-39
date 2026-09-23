@@ -97,15 +97,11 @@ export default function Home() {
         const serverIds = (j.data.items || []).map((i: { productId: number }) => i.productId);
         const mergedIds = [...new Set([...serverIds, ...selectedBeforeSync])];
         setCart(mergedIds);
-        selectedBeforeSync
-          .filter((productId) => !serverIds.includes(productId))
-          .forEach((productId) => {
-            fetch("/api/cart", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ productId, quantity: 1 }),
-            }).catch(() => {});
-          });
+        fetch("/api/cart", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ productIds: mergedIds }),
+        }).catch(() => {});
       })
       .catch(() => {});
     fetch("/api/orders")
@@ -147,6 +143,10 @@ export default function Home() {
       return;
     }
     setPayError("");
+    if (!cart.length) {
+      setPayError("Your cart is empty — add a product first.");
+      return;
+    }
     setPaying(true);
     const res = await fetch("/api/payments/initialize", {
       method: "POST",
@@ -168,11 +168,14 @@ export default function Home() {
   const toggleBrand = (b: string) => setSelectedBrands((p) => (p.includes(b) ? p.filter((x) => x !== b) : [...p, b]));
   const toggleWishlist = (id: number) => setWishlist((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
   const toggleCart = (id: number) => {
-    setCart((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+    const nextCart = cart.includes(id) ? cart.filter((x) => x !== id) : [...cart, id];
+    setCart(nextCart);
     if (user) {
-      const inCart = cart.includes(id);
-      if (inCart) fetch(`/api/cart/items/${id}`, { method: "DELETE" });
-      else fetch("/api/cart", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ productId: id, quantity: 1 }) });
+      fetch("/api/cart", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productIds: nextCart }),
+      }).catch(() => setPayError("Could not update your cart. Please try again."));
     }
   };
 
