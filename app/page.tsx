@@ -89,10 +89,23 @@ export default function Home() {
 
   useEffect(() => {
     if (!user) return;
+    const selectedBeforeSync = cart;
     fetch("/api/cart")
       .then((r) => r.json())
       .then((j) => {
-        if (j.success) setCart((j.data.items || []).map((i: { productId: number }) => i.productId));
+        if (!j.success) return;
+        const serverIds = (j.data.items || []).map((i: { productId: number }) => i.productId);
+        const mergedIds = [...new Set([...serverIds, ...selectedBeforeSync])];
+        setCart(mergedIds);
+        selectedBeforeSync
+          .filter((productId) => !serverIds.includes(productId))
+          .forEach((productId) => {
+            fetch("/api/cart", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ productId, quantity: 1 }),
+            }).catch(() => {});
+          });
       })
       .catch(() => {});
     fetch("/api/orders")
