@@ -99,11 +99,11 @@ export default function Home() {
         const mergedIds = [...new Set([...serverIds, ...selectedBeforeSync])];
         const serverProducts = serverItems
           .map((i: { product?: Product | null }) => i.product)
-          .filter((p): p is Product => Boolean(p));
+          .filter((p: Product | null | undefined): p is Product => Boolean(p));
         if (serverProducts.length) {
-          setProducts((current) => {
-            const byId = new Map(current.map((product) => [product.id, product]));
-            serverProducts.forEach((product) => byId.set(product.id, product));
+          setProducts((current: Product[]) => {
+            const byId = new Map(current.map((product: Product) => [product.id, product]));
+            serverProducts.forEach((product: Product) => byId.set(product.id, product));
             return [...byId.values()];
           });
         }
