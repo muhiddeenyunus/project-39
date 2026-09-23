@@ -94,8 +94,19 @@ export default function Home() {
       .then((r) => r.json())
       .then((j) => {
         if (!j.success) return;
-        const serverIds = (j.data.items || []).map((i: { productId: number }) => i.productId);
+        const serverItems = j.data.items || [];
+        const serverIds = serverItems.map((i: { productId: number }) => Number(i.productId));
         const mergedIds = [...new Set([...serverIds, ...selectedBeforeSync])];
+        const serverProducts = serverItems
+          .map((i: { product?: Product | null }) => i.product)
+          .filter((p): p is Product => Boolean(p));
+        if (serverProducts.length) {
+          setProducts((current) => {
+            const byId = new Map(current.map((product) => [product.id, product]));
+            serverProducts.forEach((product) => byId.set(product.id, product));
+            return [...byId.values()];
+          });
+        }
         setCart(mergedIds);
         fetch("/api/cart", {
           method: "PUT",

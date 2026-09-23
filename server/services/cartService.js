@@ -33,7 +33,7 @@ async function remoteCartView(cart) {
 function localCartView(db, cart) {
   const items = cart.items.map((item) => ({
     ...item,
-    product: db.products.find((p) => p.id === item.productId) || null,
+    product: db.products.find((p) => String(p.id) === String(item.productId)) || null,
   }));
   return { ...cart, items };
 }
