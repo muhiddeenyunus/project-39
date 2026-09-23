@@ -1,5 +1,6 @@
 "use client";
 import { useState, useMemo, useEffect } from "react";
+import Link from "next/link";
 import { PRODUCTS as CATALOG, CATEGORIES, BRANDS, COLORS, type Product } from "@/lib/catalog";
 import {
   Search,
@@ -59,13 +60,6 @@ export default function Home() {
   const [paymentSuccess, setPaymentSuccess] = useState(false);
 
   useEffect(() => {
-    fetch("/api/products")
-      .then((r) => r.json())
-      .then((j) => {
-        const items = j?.data?.items;
-        if (j.success && Array.isArray(items) && items.length) setProducts(items);
-      })
-      .catch(() => {});
     fetch("/api/auth/me")
       .then((r) => r.json())
       .then((j) => {
@@ -97,16 +91,6 @@ export default function Home() {
         const serverItems = j.data.items || [];
         const serverIds = serverItems.map((i: { productId: number }) => Number(i.productId));
         const mergedIds = [...new Set([...serverIds, ...selectedBeforeSync])];
-        const serverProducts = serverItems
-          .map((i: { product?: Product | null }) => i.product)
-          .filter((p: Product | null | undefined): p is Product => Boolean(p));
-        if (serverProducts.length) {
-          setProducts((current: Product[]) => {
-            const byId = new Map(current.map((product: Product) => [product.id, product]));
-            serverProducts.forEach((product: Product) => byId.set(product.id, product));
-            return [...byId.values()];
-          });
-        }
         setCart(mergedIds);
         fetch("/api/cart", {
           method: "PUT",
@@ -720,9 +704,9 @@ export default function Home() {
             <p className={`font-bold flex items-center gap-2 ${isDark ? "text-white" : "text-zinc-900"}`}><span className={`size-6 rounded-full flex items-center justify-center ${isDark ? "bg-white text-black" : "bg-zinc-900 text-white"}`}><ShoppingBag size={12} /></span> Project 39</p>
           </div>
           <div className="flex gap-8">
-            <div><p className={`font-semibold mb-2 ${isDark ? "text-white" : "text-zinc-900"}`}>Company</p><p>About</p><p>Careers</p><p>Contact</p></div>
-            <div><p className={`font-semibold mb-2 ${isDark ? "text-white" : "text-zinc-900"}`}>Support</p><p>Shipping</p><p>Returns</p><p>FAQ</p></div>
-            <div><p className={`font-semibold mb-2 ${isDark ? "text-white" : "text-zinc-900"}`}>Legal</p><p>Privacy</p><p>Terms</p><p>Warranty</p></div>
+            <div><p className={`font-semibold mb-2 ${isDark ? "text-white" : "text-zinc-900"}`}>Company</p><Link href="/about" className="block hover:text-[#ff2a5a]">About</Link><Link href="/careers" className="block hover:text-[#ff2a5a]">Careers</Link><Link href="/contact" className="block hover:text-[#ff2a5a]">Contact</Link></div>
+            <div><p className={`font-semibold mb-2 ${isDark ? "text-white" : "text-zinc-900"}`}>Support</p><Link href="/shipping" className="block hover:text-[#ff2a5a]">Shipping</Link><Link href="/returns" className="block hover:text-[#ff2a5a]">Returns</Link><Link href="/faq" className="block hover:text-[#ff2a5a]">FAQ</Link></div>
+            <div><p className={`font-semibold mb-2 ${isDark ? "text-white" : "text-zinc-900"}`}>Legal</p><Link href="/privacy" className="block hover:text-[#ff2a5a]">Privacy</Link><Link href="/terms" className="block hover:text-[#ff2a5a]">Terms</Link><Link href="/warranty" className="block hover:text-[#ff2a5a]">Warranty</Link></div>
           </div>
         </div>
         <p className={`text-xs mt-8 text-center ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>© 2026 Project 39. All rights reserved.</p>

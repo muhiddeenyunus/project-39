@@ -1,4 +1,4 @@
-import { loadDb, saveDb, sList, sGet, sInsert, sUpdate, sDelete, productFromRow } from "../config/db";
+import { loadDb, saveDb, sList, sGet, sInsert, sUpdate, sDelete, productFromRow, ensureSupabaseProduct } from "../config/db";
 import { useSupabase } from "../config/env";
 import { createCart, createCartItem } from "../models/Cart";
 import { httpError } from "../middleware/errorHandlerMiddleware";
@@ -50,7 +50,7 @@ export async function addItem(userId, { productId, quantity }) {
   const qty = Number(quantity);
   if (!qty || qty < 1) httpError(400, "quantity must be at least 1");
   if (useSupabase()) {
-    const product = productFromRow(await sGet("products", productId));
+    const product = productFromRow(await ensureSupabaseProduct(productId));
     if (!product) httpError(404, "product not found");
     if (product.stock < qty) httpError(400, "not enough stock");
     const cart = await remoteCart(userId);

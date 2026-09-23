@@ -47,6 +47,14 @@ export async function sGet(table, id) {
   return data;
 }
 
+export async function ensureSupabaseProduct(id) {
+  const existing = await sGet("products", id);
+  if (existing) return existing;
+  const catalogProduct = PRODUCTS.find((product) => String(product.id) === String(id));
+  if (!catalogProduct) return null;
+  return sInsert("products", { id: catalogProduct.id, ...productToRow(catalogProduct) });
+}
+
 export async function sInsert(table, row) {
   const { data, error } = await getSupabase().from(table).insert(row).select().single();
   if (error) throw Object.assign(new Error(error.message), { status: 500 });

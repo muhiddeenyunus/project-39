@@ -1,4 +1,4 @@
-import { loadDb, saveDb, sList, sInsert, sUpdate, sGet, sDelete, productFromRow } from "../config/db";
+import { loadDb, saveDb, sList, sInsert, sUpdate, sGet, sDelete, productFromRow, ensureSupabaseProduct } from "../config/db";
 import { useSupabase } from "../config/env";
 import { createOrder } from "../models/Order";
 import { createOrderItem } from "../models/OrderItem";
@@ -51,13 +51,12 @@ export async function getOrder(userId, id, isAdmin) {
 
 export async function priceItems(source) {
   if (useSupabase()) {
-    const products = await sList("products");
-    return source.map((item) => {
-      const product = productFromRow(products.find((p) => String(p.id) === String(item.productId)));
+    return Promise.all(source.map(async (item) => {
+      const product = productFromRow(await ensureSupabaseProduct(item.productId));
       if (!product) httpError(404, "product not found");
       if (product.stock < Number(item.quantity || 1)) httpError(400, "not enough stock");
       return { product, quantity: Number(item.quantity || 1) };
-    });
+    }));
   }
   const db = loadDb();
   return source.map((item) => {
