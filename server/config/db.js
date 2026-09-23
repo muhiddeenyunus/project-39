@@ -13,7 +13,8 @@ function emptyDb() {
 export function loadDb() {
   try {
     const db = JSON.parse(fs.readFileSync(file, "utf8"));
-    if (!db.products?.length) db.products = PRODUCTS.map((p) => ({ ...p }));
+    const existingProducts = new Map((db.products || []).map((product) => [String(product.id), product]));
+    db.products = PRODUCTS.map((product) => existingProducts.get(String(product.id)) || { ...product });
     return db;
   } catch {
     const db = emptyDb();
